@@ -134,6 +134,24 @@
     .sensor-detail { margin: 5px 0 0 32px; color: #8b9fa7; font-size: 9px; }
     .reference-note { margin: 0 14px 15px; padding: 10px 11px; border-radius: 8px; background: #f1f7f8; color: #67818d; font-size: 10px; line-height: 1.5; }
     .reference-note strong { color: #426779; }
+    .history-section { margin-top: 27px; }
+    .history-intro { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    .history-intro h2 { margin: 0; font: 650 clamp(20px, 2.5vw, 26px)/1.15 var(--display); letter-spacing: -.03em; }
+    .history-intro .subhead { margin-top: 6px; }
+    .history-live-note { color: var(--muted); font: 10px var(--mono); white-space: nowrap; }
+    .history-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .chart-panel { min-width: 0; }
+    .chart-heading { padding: 15px 18px 7px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .chart-heading h3 { margin: 0; color: #254b5d; font: 650 14px var(--display); }
+    .chart-heading p { margin: 4px 0 0; color: var(--muted); font-size: 10px; }
+    .chart-current { color: #315a6d; background: #eef6f7; border-radius: 5px; padding: 5px 7px; font: 9px var(--mono); white-space: nowrap; }
+    .history-chart { display: block; width: 100%; height: auto; overflow: visible; padding: 0 5px; }
+    .chart-gridline { stroke: #e6eef0; stroke-width: 1; }
+    .chart-axis-label { fill: #8196a0; font: 10px var(--mono); }
+    .chart-line { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-point { stroke: #fff; stroke-width: 1.5; }
+    .chart-current-ring { fill: #fff; stroke: #123c55; stroke-width: 2.5; }
+    .chart-note { margin: 0 18px 14px; color: #8196a0; font-size: 9px; }
     .lower-grid { display: grid; grid-template-columns: minmax(250px, .82fr) minmax(0, 1.75fr); gap: 18px; margin-top: 18px; }
     .gps-panel, .alerts-panel { min-height: 202px; }
     .gps-content { padding: 15px 18px 18px; }
@@ -205,6 +223,7 @@
       .intro-row { align-items: flex-start; }
       .update-time { font-size: 9px; margin-top: 2px; }
       .workspace, .lower-grid { grid-template-columns: 1fr; }
+      .history-grid { grid-template-columns: 1fr; }
       .workspace { gap: 14px; }
       .map-panel { min-height: 425px; }
       .map-wrap, #map { min-height: 320px; }
@@ -218,6 +237,8 @@
     @media (max-width: 450px) {
       h1 { max-width: 220px; font-size: 15px; }
       .intro-row { display: block; }
+      .history-intro { display: block; }
+      .history-live-note { display: inline-block; margin-top: 8px; }
       .update-time { text-align: left; margin-top: 10px; }
       .panel-heading { padding: 14px; }
       .center-btn { padding: 7px 9px; font-size: 10px; }
@@ -316,13 +337,42 @@
             <div class="sensor-top"><div class="sensor-name"><span class="sensor-icon">°C</span>Temperature</div><span class="severity-label"><i class="key-dot"></i><span class="severity-text">Normal</span></span></div>
             <div class="sensor-value-row"><strong class="sensor-value">—</strong><span class="sensor-unit">°C</span></div><p class="sensor-detail">Local baseline · 28°C</p>
           </div>
-          <div class="sensor-card" id="sensor-conductivity">
-            <div class="sensor-top"><div class="sensor-name"><span class="sensor-icon">EC</span>Conductivity</div><span class="severity-label"><i class="key-dot"></i><span class="severity-text">Reference</span></span></div>
-            <div class="sensor-value-row"><strong class="sensor-value">—</strong><span class="sensor-unit">mS/cm</span></div><p class="sensor-detail">Marine reference · 53 mS/cm</p>
-          </div>
         </div>
-        <p class="reference-note"><strong>Provisional demonstration screening settings.</strong> Not official standards. TDS and conductivity are marine reference baselines only and are not classified for pollution or severity.</p>
+        <p class="reference-note"><strong>Provisional demonstration screening settings.</strong> Not official standards. TDS is shown against a marine reference baseline and is not classified for pollution or severity.</p>
       </aside>
+    </section>
+
+    <section class="history-section" aria-labelledby="history-title">
+      <div class="history-intro">
+        <div>
+          <p class="section-kicker">Survey history</p>
+          <h2 id="history-title">Historical water quality</h2>
+          <p class="subhead">Simulated readings across 15 route stations · the active station is highlighted</p>
+        </div>
+        <span class="history-live-note" id="history-station">Current station: S-01</span>
+      </div>
+      <div class="history-grid">
+        <article class="panel chart-panel">
+          <div class="chart-heading"><div><h3>pH</h3><p>Acidity / alkalinity · pH units</p></div><span class="chart-current" id="chart-current-ph">—</span></div>
+          <svg class="history-chart" id="history-ph" viewBox="0 0 480 210" role="img" aria-label="Historical pH by route station"></svg>
+          <p class="chart-note">Each point is one simulated station reading.</p>
+        </article>
+        <article class="panel chart-panel">
+          <div class="chart-heading"><div><h3>Turbidity</h3><p>Suspended particles · NTU</p></div><span class="chart-current" id="chart-current-turbidity">—</span></div>
+          <svg class="history-chart" id="history-turbidity" viewBox="0 0 480 210" role="img" aria-label="Historical turbidity by route station"></svg>
+          <p class="chart-note">Each point is one simulated station reading.</p>
+        </article>
+        <article class="panel chart-panel">
+          <div class="chart-heading"><div><h3>TDS</h3><p>Total dissolved solids · ppm</p></div><span class="chart-current" id="chart-current-tds">—</span></div>
+          <svg class="history-chart" id="history-tds" viewBox="0 0 480 210" role="img" aria-label="Historical total dissolved solids by route station"></svg>
+          <p class="chart-note">Dashed line: 35,000 ppm marine reference, not a pollution threshold.</p>
+        </article>
+        <article class="panel chart-panel">
+          <div class="chart-heading"><div><h3>Temperature</h3><p>Water temperature · °C</p></div><span class="chart-current" id="chart-current-temperature">—</span></div>
+          <svg class="history-chart" id="history-temperature" viewBox="0 0 480 210" role="img" aria-label="Historical water temperature by route station"></svg>
+          <p class="chart-note">Dashed line: 28°C simulated local baseline.</p>
+        </article>
+      </div>
     </section>
 
     <section class="lower-grid" aria-label="Vessel details and recent alerts">
@@ -356,26 +406,32 @@
     // Sampled route is offshore, east of Chennai, and loops back through the survey area.
     // Each position travels with its own GPS and sensor reading as it would from a boat.
     const boatData = [
-      { lat: 13.0400, lng: 80.3900, speed: 3.2, heading: 72, ph: 8.12, turbidity: 2.8, tds: 35020, temperature: 27.8, conductivity: 53.1 },
-      { lat: 13.0470, lng: 80.4050, speed: 3.4, heading: 64, ph: 8.18, turbidity: 3.4, tds: 35100, temperature: 28.2, conductivity: 53.3 },
-      { lat: 13.0560, lng: 80.4190, speed: 3.1, heading: 58, ph: 8.48, turbidity: 6.4, tds: 34940, temperature: 28.5, conductivity: 52.9 },
-      { lat: 13.0670, lng: 80.4310, speed: 3.6, heading: 49, ph: 8.55, turbidity: 4.2, tds: 35220, temperature: 28.8, conductivity: 53.5 },
-      { lat: 13.0800, lng: 80.4410, speed: 3.3, heading: 38, ph: 8.68, turbidity: 12.4, tds: 35410, temperature: 29.1, conductivity: 53.7 },
-      { lat: 13.0940, lng: 80.4470, speed: 3.0, heading: 24, ph: 8.72, turbidity: 8.8, tds: 35080, temperature: 30.4, conductivity: 53.2 },
-      { lat: 13.1090, lng: 80.4490, speed: 2.8, heading: 8, ph: 8.91, turbidity: 29.2, tds: 35600, temperature: 31.4, conductivity: 54.0 },
-      { lat: 13.1230, lng: 80.4450, speed: 3.5, heading: 344, ph: 7.94, turbidity: 4.8, tds: 34870, temperature: 28.7, conductivity: 52.7 },
-      { lat: 13.1350, lng: 80.4360, speed: 3.7, heading: 326, ph: 7.72, turbidity: 7.1, tds: 35130, temperature: 28.4, conductivity: 53.4 },
-      { lat: 13.1450, lng: 80.4230, speed: 3.3, heading: 309, ph: 7.52, turbidity: 16.5, tds: 35380, temperature: 27.1, conductivity: 53.8 },
-      { lat: 13.1510, lng: 80.4070, speed: 3.1, heading: 290, ph: 7.28, turbidity: 26.8, tds: 35510, temperature: 24.7, conductivity: 54.1 },
-      { lat: 13.1520, lng: 80.3900, speed: 3.6, heading: 270, ph: 8.24, turbidity: 3.2, tds: 35000, temperature: 28.0, conductivity: 53.0 },
-      { lat: 13.1480, lng: 80.3740, speed: 3.4, heading: 250, ph: 8.39, turbidity: 5.7, tds: 35210, temperature: 27.3, conductivity: 53.4 },
-      { lat: 13.1400, lng: 80.3600, speed: 3.2, heading: 238, ph: 8.62, turbidity: 11.3, tds: 34910, temperature: 26.6, conductivity: 52.8 },
-      { lat: 13.1280, lng: 80.3500, speed: 3.0, heading: 220, ph: 8.31, turbidity: 2.4, tds: 35060, temperature: 28.1, conductivity: 53.1 }
+      { lat: 13.0400, lng: 80.3900, speed: 3.2, heading: 72, ph: 8.12, turbidity: 2.8, tds: 35020, temperature: 27.8 },
+      { lat: 13.0470, lng: 80.4050, speed: 3.4, heading: 64, ph: 8.18, turbidity: 3.4, tds: 35100, temperature: 28.2 },
+      { lat: 13.0560, lng: 80.4190, speed: 3.1, heading: 58, ph: 8.48, turbidity: 6.4, tds: 34940, temperature: 28.5 },
+      { lat: 13.0670, lng: 80.4310, speed: 3.6, heading: 49, ph: 8.55, turbidity: 4.2, tds: 35220, temperature: 28.8 },
+      { lat: 13.0800, lng: 80.4410, speed: 3.3, heading: 38, ph: 8.68, turbidity: 12.4, tds: 35410, temperature: 29.1 },
+      { lat: 13.0940, lng: 80.4470, speed: 3.0, heading: 24, ph: 8.72, turbidity: 8.8, tds: 35080, temperature: 30.4 },
+      { lat: 13.1090, lng: 80.4490, speed: 2.8, heading: 8, ph: 8.91, turbidity: 29.2, tds: 35600, temperature: 31.4 },
+      { lat: 13.1230, lng: 80.4450, speed: 3.5, heading: 344, ph: 7.94, turbidity: 4.8, tds: 34870, temperature: 28.7 },
+      { lat: 13.1350, lng: 80.4360, speed: 3.7, heading: 326, ph: 7.72, turbidity: 7.1, tds: 35130, temperature: 28.4 },
+      { lat: 13.1450, lng: 80.4230, speed: 3.3, heading: 309, ph: 7.52, turbidity: 16.5, tds: 35380, temperature: 27.1 },
+      { lat: 13.1510, lng: 80.4070, speed: 3.1, heading: 290, ph: 7.28, turbidity: 26.8, tds: 35510, temperature: 24.7 },
+      { lat: 13.1520, lng: 80.3900, speed: 3.6, heading: 270, ph: 8.24, turbidity: 3.2, tds: 35000, temperature: 28.0 },
+      { lat: 13.1480, lng: 80.3740, speed: 3.4, heading: 250, ph: 8.39, turbidity: 5.7, tds: 35210, temperature: 27.3 },
+      { lat: 13.1400, lng: 80.3600, speed: 3.2, heading: 238, ph: 8.62, turbidity: 11.3, tds: 34910, temperature: 26.6 },
+      { lat: 13.1280, lng: 80.3500, speed: 3.0, heading: 220, ph: 8.31, turbidity: 2.4, tds: 35060, temperature: 28.1 }
     ];
 
     const severityOrder = { normal: 0, caution: 1, warning: 2, critical: 3 };
     const severityColors = { normal: "#258766", caution: "#cf9d28", warning: "#dc7937", critical: "#cb5149" };
     const severityNames = { normal: "Normal", caution: "Caution", warning: "Warning", critical: "Critical" };
+    const historyMetrics = [
+      { key: "ph", title: "pH", unit: "pH", color: "#258ba0", decimals: 2, currentId: "chart-current-ph", svgId: "history-ph" },
+      { key: "turbidity", title: "Turbidity", unit: "NTU", color: "#cf9d28", decimals: 1, currentId: "chart-current-turbidity", svgId: "history-turbidity" },
+      { key: "tds", title: "TDS", unit: "ppm", color: "#418e70", decimals: 0, baseline: 35000, currentId: "chart-current-tds", svgId: "history-tds" },
+      { key: "temperature", title: "Temperature", unit: "°C", color: "#577da5", decimals: 1, baseline: 28, currentId: "chart-current-temperature", svgId: "history-temperature" }
+    ];
     let currentIndex = -1;
     let sampleCount = 0;
     let map = null;
@@ -438,9 +494,92 @@
         '<span>pH</span><b>' + data.ph.toFixed(2) + '</b>' +
         '<span>Turbidity</span><b>' + data.turbidity.toFixed(1) + ' NTU</b>' +
         '<span>TDS</span><b>' + Math.round(data.tds).toLocaleString() + ' ppm</b>' +
-        '<span>Temperature</span><b>' + data.temperature.toFixed(1) + ' °C</b>' +
-        '<span>Conductivity</span><b>' + data.conductivity.toFixed(1) + ' mS/cm</b></div>' +
+        '<span>Temperature</span><b>' + data.temperature.toFixed(1) + ' °C</b></div>' +
         '<div class="popup-status" style="color:' + severityColors[status] + '">Overall screening: ' + severityNames[status] + '</div>';
+    }
+
+    function formatChartValue(value, metric) {
+      return metric.key === "tds"
+        ? Math.round(value).toLocaleString()
+        : value.toFixed(metric.decimals);
+    }
+
+    // Draw one small, accessible SVG line chart for each historical metric.
+    function renderHistoryCharts(activeIndex) {
+      const width = 480;
+      const height = 210;
+      const left = 63;
+      const right = 18;
+      const top = 14;
+      const bottom = 37;
+      const plotWidth = width - left - right;
+      const plotHeight = height - top - bottom;
+
+      document.getElementById("history-station").textContent =
+        "Current station: S-" + String(activeIndex + 1).padStart(2, "0");
+
+      historyMetrics.forEach(function(metric) {
+        const svg = document.getElementById(metric.svgId);
+        const values = boatData.map(function(sample) { return sample[metric.key]; });
+        let minValue = Math.min.apply(null, values);
+        let maxValue = Math.max.apply(null, values);
+        if (metric.baseline !== undefined) {
+          minValue = Math.min(minValue, metric.baseline);
+          maxValue = Math.max(maxValue, metric.baseline);
+        }
+        if (metric.key === "turbidity") minValue = 0;
+        const padding = (maxValue - minValue || Math.max(Math.abs(maxValue) * 0.05, 1)) * 0.14;
+        minValue = metric.key === "turbidity" ? 0 : minValue - padding;
+        maxValue += padding;
+        const xFor = function(index) {
+          return left + (values.length === 1 ? 0.5 : index / (values.length - 1)) * plotWidth;
+        };
+        const yFor = function(value) {
+          return top + (1 - (value - minValue) / (maxValue - minValue)) * plotHeight;
+        };
+
+        let markup = "";
+        for (let tick = 0; tick <= 3; tick += 1) {
+          const value = maxValue - ((maxValue - minValue) * tick / 3);
+          const y = top + (plotHeight * tick / 3);
+          markup += '<line class="chart-gridline" x1="' + left + '" y1="' + y + '" x2="' + (width - right) + '" y2="' + y + '"></line>' +
+            '<text class="chart-axis-label" x="' + (left - 8) + '" y="' + (y + 3) + '" text-anchor="end">' + formatChartValue(value, metric) + '</text>';
+        }
+
+        if (metric.baseline !== undefined && metric.baseline >= minValue && metric.baseline <= maxValue) {
+          const baselineY = yFor(metric.baseline);
+          markup += '<line x1="' + left + '" y1="' + baselineY + '" x2="' + (width - right) + '" y2="' + baselineY + '" stroke="#a78a4c" stroke-width="1.5" stroke-dasharray="5 4"></line>';
+        }
+
+        const points = values.map(function(value, index) {
+          return xFor(index) + "," + yFor(value);
+        }).join(" ");
+        markup += '<polyline class="chart-line" points="' + points + '" stroke="' + metric.color + '"></polyline>';
+
+        values.forEach(function(value, index) {
+          const station = "S-" + String(index + 1).padStart(2, "0");
+          const x = xFor(index);
+          const y = yFor(value);
+          if (index === activeIndex) {
+            markup += '<circle class="chart-current-ring" cx="' + x + '" cy="' + y + '" r="6"></circle>' +
+              '<circle class="chart-point" cx="' + x + '" cy="' + y + '" r="3" fill="' + metric.color + '"><title>' + station + ': ' + formatChartValue(value, metric) + ' ' + metric.unit + ' · current sample</title></circle>';
+          } else {
+            markup += '<circle class="chart-point" cx="' + x + '" cy="' + y + '" r="3.3" fill="' + metric.color + '"><title>' + station + ': ' + formatChartValue(value, metric) + ' ' + metric.unit + '</title></circle>';
+          }
+        });
+
+        values.forEach(function(value, index) {
+          if (index === 0 || index === values.length - 1 || index % 3 === 0) {
+            const stationLabel = "S-" + String(index + 1).padStart(2, "0");
+            markup += '<text class="chart-axis-label" x="' + xFor(index) + '" y="' + (height - 10) + '" text-anchor="middle">' + stationLabel + '</text>';
+          }
+        });
+
+        svg.innerHTML = markup;
+        svg.setAttribute("aria-label", "Historical " + metric.title + " values across 15 simulated stations; station S-" + String(activeIndex + 1).padStart(2, "0") + " is current.");
+        document.getElementById(metric.currentId).textContent =
+          "Current " + formatChartValue(boatData[activeIndex][metric.key], metric) + " " + metric.unit;
+      });
     }
 
     function addSampleMarker(data, result) {
@@ -525,8 +664,7 @@
       const tdsDeviation = ((data.tds - 35000) / 35000) * 100;
       setSensorCard("tds", Math.round(data.tds).toLocaleString(), "reference", "Marine baseline 35,000 ppm · " + (tdsDeviation >= 0 ? "+" : "") + tdsDeviation.toFixed(2) + "%");
       setSensorCard("temperature", data.temperature.toFixed(1), result.temperature, "28°C baseline · " + (data.temperature - 28 >= 0 ? "+" : "") + (data.temperature - 28).toFixed(1) + "° deviation");
-      const conductivityDeviation = ((data.conductivity - 53) / 53) * 100;
-      setSensorCard("conductivity", data.conductivity.toFixed(1), "reference", "Marine baseline 53 mS/cm · " + (conductivityDeviation >= 0 ? "+" : "") + conductivityDeviation.toFixed(2) + "%");
+      renderHistoryCharts(currentIndex);
 
       routePoints.push([data.lat, data.lng]);
       if (map) {
