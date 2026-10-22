@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Water Quality Monitoring Dashboard"
+description = "A single-page autonomous water-quality monitoring dashboard with simulated boat tracking, live sensor readings, map markers, and recent alerts. The interface is implemented in one vanilla HTML file without a backend or database."
+version = "1.0.0"
+id = "artifacts/water-quality-dashboard"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18305
+
+[services.development]
+run = "pnpm --filter @workspace/water-quality-dashboard run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/water-quality-dashboard", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/water-quality-dashboard/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18305"
+BASE_PATH = "/"

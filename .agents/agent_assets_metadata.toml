@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "qqL_nn89LTU2ktvzBhVs8"
+uri = "file://artifacts/water-quality-dashboard/index.html"
+type = "html"
+title = "Water Quality Monitoring Dashboard — index.html"
+description = "The complete single-file dashboard. It can be opened in a browser with internet access for Leaflet and OpenStreetMap."
+logical_id = "cf688d36-0df4-47a0-a9b8-e452e5cc2582"
+content_hash = "sha256:63884e602426dee236e18eee4b7f6517cc9ba61790fad5789b78d54955f62971"
+size = 36866
+mtime_ms = 1792683584428
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:a046d16a-62dd-4f85-b0ee-f22ccbba4544/cf688d36-0df4-47a0-a9b8-e452e5cc2582/5fe38b44-747c-4a76-86cd-30b5ea7351d7"
+storage_version_token = "1792683622183223"
+content_type = "text/html"

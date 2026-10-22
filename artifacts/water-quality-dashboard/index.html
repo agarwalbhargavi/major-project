@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#092b43">
+  <meta name="description" content="Live autonomous boat water-quality screening dashboard offshore of Chennai, Tamil Nadu.">
+  <title>Autonomous Water Quality Monitoring Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%23092b43'/%3E%3Cpath d='M20 55h60l-10 20H30z' fill='%23b9e7e8'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #143448;
+      --muted: #6b8593;
+      --navy: #092b43;
+      --navy-2: #123c55;
+      --ocean: #e8f3f6;
+      --panel: #ffffff;
+      --line: #dce9ed;
+      --sea: #1e7892;
+      --green: #258766;
+      --yellow: #cf9d28;
+      --orange: #dc7937;
+      --red: #cb5149;
+      --display: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+      --body: "Segoe UI", "Trebuchet MS", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --shadow: 0 12px 34px rgba(22, 66, 88, .07);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: #f1f7f8;
+      font-family: var(--body);
+      font-size: 14px;
+    }
+    button { font: inherit; }
+    .topbar {
+      min-height: 84px;
+      padding: 0 clamp(18px, 4vw, 54px);
+      background: var(--navy);
+      color: #f3f8f8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+    .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .brand-mark {
+      width: 42px; height: 42px; flex: 0 0 42px; border-radius: 13px;
+      display: grid; place-items: center; color: #b9e7e8;
+      background: #174862; border: 1px solid rgba(183,231,234,.23);
+    }
+    .brand-mark svg { width: 25px; height: 25px; }
+    .eyebrow {
+      margin: 0 0 4px; color: #8ab8c6; font-size: 10px;
+      letter-spacing: .17em; text-transform: uppercase; font-weight: 700;
+    }
+    h1 {
+      margin: 0; font: 650 clamp(16px, 2vw, 21px)/1.18 var(--display);
+      letter-spacing: -.025em; color: #f6fbfb;
+    }
+    .header-right { display: flex; align-items: center; gap: 25px; }
+    .connection { display: flex; align-items: center; gap: 10px; color: #d2e3e8; font-size: 12px; }
+    .connection b { color: #f6fbfb; display: block; font-size: 12px; font-weight: 600; }
+    .status-light {
+      width: 9px; height: 9px; border-radius: 50%; background: #53c395;
+      box-shadow: 0 0 0 4px rgba(83,195,149,.13);
+    }
+    .live-pill {
+      display: flex; align-items: center; gap: 8px; border: 1px solid rgba(126,203,179,.3);
+      color: #a9e2cb; border-radius: 99px; padding: 8px 12px;
+      font-size: 10px; letter-spacing: .13em; font-weight: 750;
+    }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #65d2a2; animation: pulse 1.8s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .38; transform: scale(.78); } }
+    main { max-width: 1640px; margin: 0 auto; padding: 25px clamp(15px, 3vw, 42px) 36px; }
+    .intro-row { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 16px; }
+    .section-kicker { color: var(--sea); text-transform: uppercase; letter-spacing: .17em; font-weight: 750; font-size: 10px; margin: 0 0 7px; }
+    .intro-row h2 { margin: 0; font: 650 clamp(20px, 2.7vw, 28px)/1.12 var(--display); letter-spacing: -.035em; }
+    .subhead { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+    .update-time { color: var(--muted); font: 11px var(--mono); text-align: right; white-space: nowrap; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.86fr) minmax(310px, 1fr); gap: 18px; align-items: stretch; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+    .map-panel { display: flex; flex-direction: column; min-height: 540px; }
+    .panel-heading { padding: 17px 19px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--line); }
+    .panel-heading h3 { font: 650 14px var(--display); margin: 0; letter-spacing: -.01em; }
+    .panel-heading p { color: var(--muted); font-size: 11px; margin: 4px 0 0; }
+    .map-tools { display: flex; align-items: center; gap: 12px; }
+    .map-key { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 10px; white-space: nowrap; }
+    .key-dot { width: 8px; height: 8px; display: inline-block; border-radius: 50%; margin-right: 3px; vertical-align: 0; }
+    .center-btn {
+      border: 1px solid #d4e4e8; background: #f8fbfc; color: #26566b; border-radius: 7px;
+      padding: 8px 11px; cursor: pointer; font-size: 11px; font-weight: 650; white-space: nowrap;
+      transition: background .18s ease, transform .18s ease;
+    }
+    .center-btn:hover { background: #e9f4f6; transform: translateY(-1px); }
+    .map-wrap { flex: 1; min-height: 360px; position: relative; background: #dbeef1; }
+    #map { height: 100%; min-height: 360px; width: 100%; }
+    .map-fallback {
+      display: none; position: absolute; inset: 0; z-index: 500; padding: 28px;
+      align-items: center; justify-content: center; text-align: center; background: #e9f3f5; color: var(--ink);
+    }
+    .map-fallback.show { display: flex; }
+    .fallback-box { max-width: 340px; }
+    .fallback-box strong { display: block; font-size: 15px; margin-bottom: 8px; }
+    .fallback-box p { color: var(--muted); font-size: 12px; line-height: 1.65; margin: 0; }
+    .map-caption { padding: 10px 17px; display: flex; justify-content: space-between; gap: 12px; font-size: 10px; color: var(--muted); border-top: 1px solid var(--line); }
+    .map-caption strong { color: #315a6d; font-weight: 600; }
+    .readings-panel { min-width: 0; }
+    .sensor-heading { padding-bottom: 14px; }
+    .sensor-heading .screening-tag { font: 9px var(--mono); color: #71909b; background: #f0f6f7; border-radius: 5px; padding: 5px 7px; white-space: nowrap; }
+    .sensor-list { padding: 3px 15px 14px; }
+    .sensor-card {
+      position: relative; padding: 14px 12px 13px; border-bottom: 1px solid #edf2f3;
+      min-height: 82px; transition: background .25s ease;
+    }
+    .sensor-card:last-child { border-bottom: 0; }
+    .sensor-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .sensor-name { color: #557280; font-size: 11px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+    .sensor-icon {
+      width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px;
+      color: #39758a; background: #eaf4f6; font-size: 11px; font-weight: 700;
+    }
+    .severity-label { display: flex; align-items: center; gap: 6px; color: var(--green); font-size: 9px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    .severity-label .key-dot { width: 7px; height: 7px; margin: 0; }
+    .sensor-value-row { margin: 7px 0 0 32px; display: flex; align-items: baseline; gap: 6px; }
+    .sensor-value { font: 650 22px/1 var(--display); letter-spacing: -.035em; color: #173b4f; }
+    .sensor-unit { font-size: 10px; color: #78919b; }
+    .sensor-detail { margin: 5px 0 0 32px; color: #8b9fa7; font-size: 9px; }
+    .reference-note { margin: 0 14px 15px; padding: 10px 11px; border-radius: 8px; background: #f1f7f8; color: #67818d; font-size: 10px; line-height: 1.5; }
+    .reference-note strong { color: #426779; }
+    .lower-grid { display: grid; grid-template-columns: minmax(250px, .82fr) minmax(0, 1.75fr); gap: 18px; margin-top: 18px; }
+    .gps-panel, .alerts-panel { min-height: 202px; }
+    .gps-content { padding: 15px 18px 18px; }
+    .gps-coord {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      padding-bottom: 13px; border-bottom: 1px solid #edf2f3;
+    }
+    .gps-coord small { display: block; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #8ba0a8; margin-bottom: 6px; }
+    .gps-coord strong { font: 600 13px var(--mono); color: #274e61; }
+    .gps-metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; padding-top: 14px; }
+    .gps-metric span { display: block; color: #8ba0a8; text-transform: uppercase; letter-spacing: .1em; font-size: 9px; margin-bottom: 6px; }
+    .gps-metric strong { color: #31586b; font: 600 13px var(--mono); }
+    .heading-wrap { display: inline-flex; align-items: center; gap: 5px; }
+    .heading-arrow { display: inline-block; color: var(--sea); transform: rotate(0deg); font-size: 15px; }
+    .alerts-title-right { font-size: 10px; color: #8ba0a8; }
+    .alert-list { padding: 0 17px 12px; }
+    .alert-row {
+      display: grid; grid-template-columns: 9px minmax(88px, .8fr) minmax(80px, .8fr) minmax(92px, 1fr) auto;
+      align-items: center; gap: 11px; min-height: 37px; border-bottom: 1px solid #edf2f3;
+      cursor: pointer; transition: background .16s ease; padding: 4px 4px; border-radius: 5px;
+    }
+    .alert-row:last-child { border-bottom: 0; }
+    .alert-row:hover { background: #f4f9fa; }
+    .alert-severity { width: 8px; height: 8px; border-radius: 50%; }
+    .alert-param { font-size: 11px; font-weight: 650; color: #385b6b; }
+    .alert-value { font: 11px var(--mono); color: #4c6875; }
+    .alert-location { font: 9px var(--mono); color: #8197a0; }
+    .alert-time { font: 9px var(--mono); color: #8197a0; text-align: right; }
+    .empty-alerts { padding: 18px 4px; color: #879ca4; font-size: 11px; }
+    .footer-note { margin-top: 17px; text-align: center; color: #8da2aa; font-size: 10px; }
+    .footer-note span { color: #5d7d89; }
+    .leaflet-container { font-family: var(--body); }
+    .leaflet-popup-content-wrapper { border-radius: 9px; box-shadow: 0 10px 28px rgba(16,50,68,.18); }
+    .leaflet-popup-content { margin: 12px 14px; min-width: 190px; }
+    .popup-title { color: #214d62; font-weight: 700; margin-bottom: 8px; font-size: 12px; }
+    .popup-grid { display: grid; grid-template-columns: 1fr auto; gap: 5px 13px; font-size: 10px; color: #6d8490; }
+    .popup-grid b { color: #36596a; font-family: var(--mono); font-weight: 600; }
+    .popup-status { margin-top: 9px; padding-top: 8px; border-top: 1px solid #e9eff1; font-size: 10px; font-weight: 700; }
+    .boat-marker { background: none; border: 0; }
+    .boat-glyph {
+      display: block; width: 34px; height: 34px; filter: drop-shadow(0 3px 4px rgba(6,44,66,.3));
+      transform-origin: 50% 50%; transition: transform .7s ease;
+    }
+    .sample-marker {
+      width: 16px; height: 16px; border-radius: 50%; border: 2px solid #f7ffff;
+      box-shadow: 0 1px 7px rgba(8,43,61,.35); position: relative;
+    }
+    .sample-marker.critical::after {
+      content: "!"; position: absolute; right: -9px; top: -11px; width: 13px; height: 13px;
+      display: grid; place-items: center; border: 1px solid white; border-radius: 50%;
+      background: #fff4f1; color: #bc3934; font: 800 9px/1 var(--body); box-shadow: 0 1px 3px #8398a0;
+    }
+    .load-progress { display: inline-block; width: 15px; height: 2px; background: #b7d0d8; margin: 0 5px 3px 0; overflow: hidden; position: relative; }
+    .load-progress::after { content: ""; position: absolute; inset: 0; background: var(--sea); animation: loading 1.2s ease infinite; transform: translateX(-100%); }
+    @keyframes loading { to { transform: translateX(100%); } }
+    @media (max-width: 950px) {
+      .workspace { grid-template-columns: minmax(0, 1.35fr) minmax(285px, .95fr); gap: 13px; }
+      .lower-grid { gap: 13px; }
+      .map-key { display: none; }
+    }
+    @media (max-width: 720px) {
+      .topbar { min-height: 76px; padding: 13px 16px; }
+      .brand-mark { width: 36px; height: 36px; flex-basis: 36px; }
+      .brand { gap: 10px; }
+      .header-right { gap: 10px; }
+      .connection { display: none; }
+      .live-pill { font-size: 9px; padding: 7px 9px; }
+      main { padding: 22px 13px 28px; }
+      .intro-row { align-items: flex-start; }
+      .update-time { font-size: 9px; margin-top: 2px; }
+      .workspace, .lower-grid { grid-template-columns: 1fr; }
+      .workspace { gap: 14px; }
+      .map-panel { min-height: 425px; }
+      .map-wrap, #map { min-height: 320px; }
+      .lower-grid { gap: 14px; margin-top: 14px; }
+      .gps-panel { min-height: 0; }
+      .sensor-list { display: grid; grid-template-columns: 1fr 1fr; }
+      .sensor-card { border-bottom: 1px solid #edf2f3; }
+      .sensor-card:nth-child(odd) { border-right: 1px solid #edf2f3; }
+      .sensor-card:last-child { border-bottom: 0; }
+    }
+    @media (max-width: 450px) {
+      h1 { max-width: 220px; font-size: 15px; }
+      .intro-row { display: block; }
+      .update-time { text-align: left; margin-top: 10px; }
+      .panel-heading { padding: 14px; }
+      .center-btn { padding: 7px 9px; font-size: 10px; }
+      .map-panel { min-height: 390px; }
+      .map-wrap, #map { min-height: 285px; }
+      .sensor-list { padding: 2px 9px 10px; }
+      .sensor-card { padding: 12px 8px; }
+      .sensor-value { font-size: 19px; }
+      .sensor-name { gap: 6px; }
+      .sensor-icon { width: 21px; height: 21px; }
+      .sensor-value-row, .sensor-detail { margin-left: 27px; }
+      .alert-row { grid-template-columns: 8px minmax(0, 1fr) auto; gap: 5px 8px; padding: 7px 2px; }
+      .alert-severity { grid-column: 1; grid-row: 1 / span 3; }
+      .alert-location { grid-column: 2; grid-row: 3; font-size: 8px; }
+      .alert-time { grid-column: 3; grid-row: 1; }
+      .alert-value { grid-column: 3; grid-row: 2; }
+      .map-caption { font-size: 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none"><path d="M4 21.5c2.5 2.2 4.8 2.2 7.3 0 2.5-2.2 4.8-2.2 7.3 0 2.5 2.2 4.8 2.2 7.4 0M6.8 16.5h18.4l-3.4 5H10.2l-3.4-5Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 16.2V9.5h5.5l3.2 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <p class="eyebrow">Pelagic field systems</p>
+        <h1>Autonomous Water Quality Monitoring Dashboard</h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="connection"><span class="status-light"></span><span><b>Boat connected</b>PV-01 · Chennai coast</span></div>
+      <div class="live-pill"><span class="live-dot"></span> LIVE MONITORING</div>
+    </div>
+  </header>
+
+  <main>
+    <div class="intro-row">
+      <div>
+        <p class="section-kicker">Field telemetry / Bay of Bengal</p>
+        <h2>Coastal water observatory</h2>
+        <p class="subhead">Autonomous sampling route · Offshore east of Chennai, Tamil Nadu</p>
+      </div>
+      <div class="update-time" id="last-updated"><span class="load-progress"></span> Establishing first sample…</div>
+    </div>
+
+    <section class="workspace" aria-label="Live monitoring">
+      <article class="panel map-panel">
+        <div class="panel-heading">
+          <div><h3>Vessel track &amp; sample stations</h3><p>Bay of Bengal · simulated autonomous survey</p></div>
+          <div class="map-tools">
+            <div class="map-key" aria-label="Map status legend">
+              <span><i class="key-dot" style="background:var(--green)"></i>Normal</span>
+              <span><i class="key-dot" style="background:var(--yellow)"></i>Caution</span>
+              <span><i class="key-dot" style="background:var(--orange)"></i>Warning</span>
+              <span><i class="key-dot" style="background:var(--red)"></i>Critical</span>
+            </div>
+            <button class="center-btn" id="center-boat" type="button">◎ &nbsp;Center on boat</button>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <div id="map" role="application" aria-label="Interactive map showing the vessel route and water quality sample locations"></div>
+          <div class="map-fallback" id="map-fallback" role="status">
+            <div class="fallback-box">
+              <strong>Map connection unavailable</strong>
+              <p id="map-error-message">The interactive map needs Leaflet and OpenStreetMap tile access. GPS and sensor telemetry will continue updating below.</p>
+            </div>
+          </div>
+        </div>
+        <div class="map-caption"><span><strong>Blue track</strong> · vessel route &nbsp; <strong>Circles</strong> · persistent readings</span><span id="sample-count">0 sample stations</span></div>
+      </article>
+
+      <aside class="panel readings-panel" aria-label="Water quality readings">
+        <div class="panel-heading sensor-heading">
+          <div><h3>Water quality readings</h3><p>Current station · continuously sampled</p></div>
+          <span class="screening-tag">LIVE SENSOR SET</span>
+        </div>
+        <div class="sensor-list">
+          <div class="sensor-card" id="sensor-ph">
+            <div class="sensor-top"><div class="sensor-name"><span class="sensor-icon">pH</span>Acidity / alkalinity</div><span class="severity-label"><i class="key-dot"></i><span class="severity-text">Normal</span></span></div>
+            <div class="sensor-value-row"><strong class="sensor-value">—</strong><span class="sensor-unit">pH</span></div><p class="sensor-detail">Screening range 7.8–8.4</p>
+          </div>
+          <div class="sensor-card" id="sensor-turbidity">
+            <div class="sensor-top"><div class="sensor-name"><span class="sensor-icon">NT</span>Turbidity</div><span class="severity-label"><i class="key-dot"></i><span class="severity-text">Normal</span></span></div>
+            <div class="sensor-value-row"><strong class="sensor-value">—</strong><span class="sensor-unit">NTU</span></div><p class="sensor-detail">Screening threshold ≤ 5 NTU</p>
+          </div>
+          <div class="sensor-card" id="sensor-tds">
+            <div class="sensor-top"><div class="sensor-name"><span class="sensor-icon">TDS</span>Dissolved solids</div><span class="severity-label"><i class="key-dot"></i><span class="severity-text">Reference</span></span></div>
+            <div class="sensor-value-row"><strong class="sensor-value">—</strong><span class="sensor-unit">ppm</span></div><p class="sensor-detail">Marine reference · 35,000 ppm</p>
+          </div>
+          <div class="sensor-card" id="sensor-temperature">
+            <div class="sensor-top"><div class="sensor-name"><span class="sensor-icon">°C</span>Temperature</div><span class="severity-label"><i class="key-dot"></i><span class="severity-text">Normal</span></span></div>
+            <div class="sensor-value-row"><strong class="sensor-value">—</strong><span class="sensor-unit">°C</span></div><p class="sensor-detail">Local baseline · 28°C</p>
+          </div>
+          <div class="sensor-card" id="sensor-conductivity">
+            <div class="sensor-top"><div class="sensor-name"><span class="sensor-icon">EC</span>Conductivity</div><span class="severity-label"><i class="key-dot"></i><span class="severity-text">Reference</span></span></div>
+            <div class="sensor-value-row"><strong class="sensor-value">—</strong><span class="sensor-unit">mS/cm</span></div><p class="sensor-detail">Marine reference · 53 mS/cm</p>
+          </div>
+        </div>
+        <p class="reference-note"><strong>Provisional demonstration screening settings.</strong> Not official standards. TDS and conductivity are marine reference baselines only and are not classified for pollution or severity.</p>
+      </aside>
+    </section>
+
+    <section class="lower-grid" aria-label="Vessel details and recent alerts">
+      <article class="panel gps-panel">
+        <div class="panel-heading"><div><h3>Vessel navigation</h3><p>PV-01 · autonomous surface platform</p></div><span class="screening-tag">GPS ACTIVE</span></div>
+        <div class="gps-content">
+          <div class="gps-coord">
+            <div><small>Latitude</small><strong id="latitude">—</strong></div>
+            <div><small>Longitude</small><strong id="longitude">—</strong></div>
+          </div>
+          <div class="gps-metrics">
+            <div class="gps-metric"><span>Speed</span><strong id="speed">—</strong></div>
+            <div class="gps-metric"><span>Heading</span><strong class="heading-wrap"><i class="heading-arrow" id="heading-arrow">↑</i><b id="heading">—</b></strong></div>
+            <div class="gps-metric"><span>Station</span><strong id="station">—</strong></div>
+          </div>
+        </div>
+      </article>
+      <article class="panel alerts-panel">
+        <div class="panel-heading">
+          <div><h3>Recent water quality alerts</h3><p>Non-normal screening results · select an alert to locate it</p></div>
+          <span class="alerts-title-right" id="alert-count">0 of 5</span>
+        </div>
+        <div class="alert-list" id="alert-list"><div class="empty-alerts">No screening alerts recorded yet.</div></div>
+      </article>
+    </section>
+    <p class="footer-note">Screening is a <span>demonstration only</span> · Thresholds require local calibration before field use.</p>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    // Sampled route is offshore, east of Chennai, and loops back through the survey area.
+    // Each position travels with its own GPS and sensor reading as it would from a boat.
+    const boatData = [
+      { lat: 13.0400, lng: 80.3900, speed: 3.2, heading: 72, ph: 8.12, turbidity: 2.8, tds: 35020, temperature: 27.8, conductivity: 53.1 },
+      { lat: 13.0470, lng: 80.4050, speed: 3.4, heading: 64, ph: 8.18, turbidity: 3.4, tds: 35100, temperature: 28.2, conductivity: 53.3 },
+      { lat: 13.0560, lng: 80.4190, speed: 3.1, heading: 58, ph: 8.48, turbidity: 6.4, tds: 34940, temperature: 28.5, conductivity: 52.9 },
+      { lat: 13.0670, lng: 80.4310, speed: 3.6, heading: 49, ph: 8.55, turbidity: 4.2, tds: 35220, temperature: 28.8, conductivity: 53.5 },
+      { lat: 13.0800, lng: 80.4410, speed: 3.3, heading: 38, ph: 8.68, turbidity: 12.4, tds: 35410, temperature: 29.1, conductivity: 53.7 },
+      { lat: 13.0940, lng: 80.4470, speed: 3.0, heading: 24, ph: 8.72, turbidity: 8.8, tds: 35080, temperature: 30.4, conductivity: 53.2 },
+      { lat: 13.1090, lng: 80.4490, speed: 2.8, heading: 8, ph: 8.91, turbidity: 29.2, tds: 35600, temperature: 31.4, conductivity: 54.0 },
+      { lat: 13.1230, lng: 80.4450, speed: 3.5, heading: 344, ph: 7.94, turbidity: 4.8, tds: 34870, temperature: 28.7, conductivity: 52.7 },
+      { lat: 13.1350, lng: 80.4360, speed: 3.7, heading: 326, ph: 7.72, turbidity: 7.1, tds: 35130, temperature: 28.4, conductivity: 53.4 },
+      { lat: 13.1450, lng: 80.4230, speed: 3.3, heading: 309, ph: 7.52, turbidity: 16.5, tds: 35380, temperature: 27.1, conductivity: 53.8 },
+      { lat: 13.1510, lng: 80.4070, speed: 3.1, heading: 290, ph: 7.28, turbidity: 26.8, tds: 35510, temperature: 24.7, conductivity: 54.1 },
+      { lat: 13.1520, lng: 80.3900, speed: 3.6, heading: 270, ph: 8.24, turbidity: 3.2, tds: 35000, temperature: 28.0, conductivity: 53.0 },
+      { lat: 13.1480, lng: 80.3740, speed: 3.4, heading: 250, ph: 8.39, turbidity: 5.7, tds: 35210, temperature: 27.3, conductivity: 53.4 },
+      { lat: 13.1400, lng: 80.3600, speed: 3.2, heading: 238, ph: 8.62, turbidity: 11.3, tds: 34910, temperature: 26.6, conductivity: 52.8 },
+      { lat: 13.1280, lng: 80.3500, speed: 3.0, heading: 220, ph: 8.31, turbidity: 2.4, tds: 35060, temperature: 28.1, conductivity: 53.1 }
+    ];
+
+    const severityOrder = { normal: 0, caution: 1, warning: 2, critical: 3 };
+    const severityColors = { normal: "#258766", caution: "#cf9d28", warning: "#dc7937", critical: "#cb5149" };
+    const severityNames = { normal: "Normal", caution: "Caution", warning: "Warning", critical: "Critical" };
+    let currentIndex = -1;
+    let sampleCount = 0;
+    let map = null;
+    let boatMarker = null;
+    let currentBoatData = null;
+    let routeLine = null;
+    let tileLayer = null;
+    let hasShownTileError = false;
+    const routePoints = [];
+    const alerts = [];
+
+    // The three evaluated parameters determine overall status; salinity references do not.
+    function evaluateReading(data) {
+      const ph = data.ph;
+      let phStatus = "normal";
+      if (ph < 7.3 || ph > 8.8) phStatus = "critical";
+      else if ((ph >= 7.3 && ph < 7.6) || (ph > 8.6 && ph <= 8.8)) phStatus = "warning";
+      else if ((ph >= 7.6 && ph < 7.8) || (ph > 8.4 && ph <= 8.6)) phStatus = "caution";
+
+      const turbidity = data.turbidity;
+      let turbidityStatus = "normal";
+      if (turbidity > 25) turbidityStatus = "critical";
+      else if (turbidity > 10) turbidityStatus = "warning";
+      else if (turbidity > 5) turbidityStatus = "caution";
+
+      const deviation = Math.abs(data.temperature - 28);
+      let temperatureStatus = "normal";
+      if (deviation > 3) temperatureStatus = "critical";
+      else if (deviation > 2) temperatureStatus = "warning";
+      else if (deviation > 1) temperatureStatus = "caution";
+
+      const statuses = [
+        { parameter: "pH", value: data.ph, unit: "", status: phStatus },
+        { parameter: "Turbidity", value: data.turbidity, unit: " NTU", status: turbidityStatus },
+        { parameter: "Temperature", value: data.temperature, unit: "°C", status: temperatureStatus }
+      ];
+      let overall = "normal";
+      statuses.forEach(function(item) {
+        if (severityOrder[item.status] > severityOrder[overall]) overall = item.status;
+      });
+      return { ph: phStatus, turbidity: turbidityStatus, temperature: temperatureStatus, overall: overall, evaluated: statuses };
+    }
+
+    function setSensorCard(id, value, status, detail, decimals) {
+      const card = document.getElementById("sensor-" + id);
+      card.querySelector(".sensor-value").textContent = value;
+      card.querySelector(".severity-text").textContent = severityNames[status] || "Reference";
+      card.querySelector(".severity-label").style.color = severityColors[status] || "#67818d";
+      card.querySelector(".severity-label .key-dot").style.background = severityColors[status] || "#8aa3ac";
+      card.querySelector(".sensor-detail").textContent = detail;
+      card.querySelector(".sensor-value").setAttribute("aria-label", value + " " + card.querySelector(".sensor-unit").textContent);
+    }
+
+    function makePopup(data, result) {
+      const status = result.overall;
+      return '<div class="popup-title">Sample station · ' + severityNames[status] + '</div>' +
+        '<div class="popup-grid">' +
+        '<span>Latitude</span><b>' + data.lat.toFixed(5) + '°</b>' +
+        '<span>Longitude</span><b>' + data.lng.toFixed(5) + '°</b>' +
+        '<span>pH</span><b>' + data.ph.toFixed(2) + '</b>' +
+        '<span>Turbidity</span><b>' + data.turbidity.toFixed(1) + ' NTU</b>' +
+        '<span>TDS</span><b>' + Math.round(data.tds).toLocaleString() + ' ppm</b>' +
+        '<span>Temperature</span><b>' + data.temperature.toFixed(1) + ' °C</b>' +
+        '<span>Conductivity</span><b>' + data.conductivity.toFixed(1) + ' mS/cm</b></div>' +
+        '<div class="popup-status" style="color:' + severityColors[status] + '">Overall screening: ' + severityNames[status] + '</div>';
+    }
+
+    function addSampleMarker(data, result) {
+      if (!map) return;
+      const status = result.overall;
+      const markerHtml = '<div class="sample-marker ' + status + '" style="background:' + severityColors[status] + '"></div>';
+      const icon = L.divIcon({ className: "", html: markerHtml, iconSize: [16, 16], iconAnchor: [8, 8] });
+      L.marker([data.lat, data.lng], { icon: icon, keyboard: true, title: status === "critical" ? "Critical sample — warning" : severityNames[status] + " sample" })
+        .addTo(map).bindPopup(makePopup(data, result));
+    }
+
+    function addAlerts(data, result) {
+      result.evaluated.forEach(function(item) {
+        if (item.status === "normal") return;
+        alerts.unshift({
+          parameter: item.parameter,
+          value: item.value,
+          unit: item.unit,
+          level: item.status,
+          time: new Date(),
+          lat: data.lat,
+          lng: data.lng
+        });
+      });
+      alerts.splice(5);
+      renderAlerts();
+    }
+
+    function renderAlerts() {
+      const list = document.getElementById("alert-list");
+      document.getElementById("alert-count").textContent = alerts.length + " of 5";
+      if (!alerts.length) {
+        list.innerHTML = '<div class="empty-alerts">No screening alerts recorded yet.</div>';
+        return;
+      }
+      list.innerHTML = alerts.map(function(alert, index) {
+        const time = alert.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        const value = alert.parameter === "Turbidity" ? alert.value.toFixed(1) + alert.unit : alert.parameter === "Temperature" ? alert.value.toFixed(1) + alert.unit : alert.value.toFixed(2);
+        return '<div class="alert-row" role="button" tabindex="0" data-alert-index="' + index + '" aria-label="Locate ' + severityNames[alert.level] + ' ' + alert.parameter + ' alert">' +
+          '<i class="alert-severity" style="background:' + severityColors[alert.level] + '"></i>' +
+          '<span class="alert-param">' + severityNames[alert.level] + ' · ' + alert.parameter + '</span>' +
+          '<span class="alert-value">' + value + '</span>' +
+          '<span class="alert-location">' + alert.lat.toFixed(4) + ', ' + alert.lng.toFixed(4) + '</span>' +
+          '<time class="alert-time">' + time + '</time></div>';
+      }).join("");
+      list.querySelectorAll(".alert-row").forEach(function(row) {
+        function locateAlert() {
+          const alert = alerts[Number(row.dataset.alertIndex)];
+          if (alert && map) map.setView([alert.lat, alert.lng], 14, { animate: true });
+        }
+        row.addEventListener("click", locateAlert);
+        row.addEventListener("keydown", function(event) {
+          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); locateAlert(); }
+        });
+      });
+    }
+
+    function updateGps(data, sampleNumber) {
+      document.getElementById("latitude").textContent = data.lat.toFixed(5) + "° N";
+      document.getElementById("longitude").textContent = data.lng.toFixed(5) + "° E";
+      document.getElementById("speed").textContent = data.speed.toFixed(1) + " kn";
+      document.getElementById("heading").textContent = data.heading + "°";
+      document.getElementById("heading-arrow").style.transform = "rotate(" + data.heading + "deg)";
+      document.getElementById("station").textContent = "S-" + String(sampleNumber).padStart(2, "0");
+      document.getElementById("last-updated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " · 3 sec cadence";
+    }
+
+    // Single integration point: future device/backend payloads can be sent here.
+    function updateDashboard(data) {
+      // The interval calls this with no argument to consume the next simulated sample.
+      if (!data) {
+        currentIndex = (currentIndex + 1) % boatData.length;
+        data = boatData[currentIndex];
+      }
+      const result = evaluateReading(data);
+      const sampleNumber = ++sampleCount;
+      currentBoatData = data;
+      updateGps(data, sampleNumber);
+
+      setSensorCard("ph", data.ph.toFixed(2), result.ph, "Screening range 7.8–8.4");
+      setSensorCard("turbidity", data.turbidity.toFixed(1), result.turbidity, "Screening threshold ≤ 5 NTU");
+      const tdsDeviation = ((data.tds - 35000) / 35000) * 100;
+      setSensorCard("tds", Math.round(data.tds).toLocaleString(), "reference", "Marine baseline 35,000 ppm · " + (tdsDeviation >= 0 ? "+" : "") + tdsDeviation.toFixed(2) + "%");
+      setSensorCard("temperature", data.temperature.toFixed(1), result.temperature, "28°C baseline · " + (data.temperature - 28 >= 0 ? "+" : "") + (data.temperature - 28).toFixed(1) + "° deviation");
+      const conductivityDeviation = ((data.conductivity - 53) / 53) * 100;
+      setSensorCard("conductivity", data.conductivity.toFixed(1), "reference", "Marine baseline 53 mS/cm · " + (conductivityDeviation >= 0 ? "+" : "") + conductivityDeviation.toFixed(2) + "%");
+
+      routePoints.push([data.lat, data.lng]);
+      if (map) {
+        if (routeLine) routeLine.setLatLngs(routePoints);
+        else routeLine = L.polyline(routePoints, { color: "#227d9d", weight: 3, opacity: .9, lineJoin: "round" }).addTo(map);
+        addSampleMarker(data, result);
+        if (!boatMarker) {
+          const boatIcon = L.divIcon({
+            className: "boat-marker",
+            html: '<svg class="boat-glyph" viewBox="0 0 40 40" style="transform:rotate(' + data.heading + 'deg)" aria-label="Boat heading ' + data.heading + ' degrees"><circle cx="20" cy="20" r="18" fill="#f7ffff" stroke="#1e7892" stroke-width="1.5"/><path d="M20 6.7 28 27.8 20 23.7 12 27.8 20 6.7Z" fill="#147a96" stroke="#0b526e" stroke-width="1"/></svg>',
+            iconSize: [40, 40], iconAnchor: [20, 20]
+          });
+          boatMarker = L.marker([data.lat, data.lng], { icon: boatIcon, title: "Autonomous boat PV-01", keyboard: true }).addTo(map);
+        } else {
+          boatMarker.setLatLng([data.lat, data.lng]);
+          boatMarker.setIcon(L.divIcon({
+            className: "boat-marker",
+            html: '<svg class="boat-glyph" viewBox="0 0 40 40" style="transform:rotate(' + data.heading + 'deg)" aria-label="Boat heading ' + data.heading + ' degrees"><circle cx="20" cy="20" r="18" fill="#f7ffff" stroke="#1e7892" stroke-width="1.5"/><path d="M20 6.7 28 27.8 20 23.7 12 27.8 20 6.7Z" fill="#147a96" stroke="#0b526e" stroke-width="1"/></svg>',
+            iconSize: [40, 40], iconAnchor: [20, 20]
+          }));
+        }
+        boatMarker.bindPopup('<div class="popup-title">Autonomous vessel · PV-01</div><div class="popup-grid"><span>Latitude</span><b>' + data.lat.toFixed(5) + '°</b><span>Longitude</span><b>' + data.lng.toFixed(5) + '°</b><span>Speed</span><b>' + data.speed.toFixed(1) + ' kn</b><span>Heading</span><b>' + data.heading + '°</b><span>Sample</span><b>S-' + String(sampleNumber).padStart(2, "0") + '</b></div>');
+      }
+      addAlerts(data, result);
+      document.getElementById("sample-count").textContent = routePoints.length + " sample stations";
+      if (map && sampleNumber === 1) map.setView([data.lat, data.lng], 12);
+    }
+
+    function showMapError(message) {
+      document.getElementById("map-fallback").classList.add("show");
+      if (message) document.getElementById("map-error-message").textContent = message;
+    }
+
+    function initializeMap() {
+      if (typeof L === "undefined") {
+        showMapError("Leaflet could not be loaded. Check your internet connection or CDN access. GPS and sensor telemetry will continue updating below.");
+        return;
+      }
+      try {
+        map = L.map("map", { zoomControl: true, scrollWheelZoom: true }).setView([13.10, 80.40], 12);
+        tileLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19
+        }).addTo(map);
+        tileLayer.on("tileerror", function() {
+          if (!hasShownTileError) {
+            hasShownTileError = true;
+            showMapError("OpenStreetMap tiles are not responding. Check your internet connection; the boat readings and alerts remain live.");
+          }
+        });
+        map.on("baselayerchange", function() { hasShownTileError = false; });
+      } catch (error) {
+        showMapError("The interactive map could not start in this browser. GPS and sensor telemetry will continue updating below.");
+      }
+    }
+
+    document.getElementById("center-boat").addEventListener("click", function() {
+      if (map && currentBoatData) {
+        map.setView([currentBoatData.lat, currentBoatData.lng], 14, { animate: true });
+      }
+    });
+
+    initializeMap();
+    currentIndex = 0;
+    updateDashboard(boatData[currentIndex]);
+    setInterval(updateDashboard, 3000);
+  </script>
+</body>
+</html>
